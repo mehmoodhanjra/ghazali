@@ -653,6 +653,39 @@ tfoot td {
 }
 tfoot td.gt-label { font-size: 0.82rem; letter-spacing: 0.3px; }
 
+/* ── Users Management ── */
+.users-card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow-sm); border:1px solid var(--grey-border); overflow:hidden; margin-bottom:18px; }
+.users-card-header { background:linear-gradient(90deg,var(--blue-deep),var(--blue-mid)); padding:13px 18px; display:flex; align-items:center; justify-content:space-between; }
+.users-card-header .card-title { color:#fff; font-weight:700; font-size:.93rem; }
+.admin-table { width:100%; border-collapse:collapse; }
+.admin-table th { padding:9px 12px; text-align:left; font-size:.77rem; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--grey-mid); border-bottom:2px solid var(--grey-border); background:var(--grey-light); }
+.admin-table td { padding:10px 12px; border-bottom:1px solid var(--grey-border); font-size:.87rem; vertical-align:middle; }
+.admin-table tr:last-child td { border-bottom:none; }
+.admin-table tr:hover td { background:var(--blue-pale); }
+.user-role-tag { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px; padding:2px 8px; border-radius:4px; }
+.role-su     { background:#ede9fe; color:#6d28d9; border:1px solid #c4b5fd; }
+.role-admin  { background:#dbeafe; color:var(--blue-mid); border:1px solid var(--blue-accent); }
+.role-op     { background:#dcfce7; color:var(--green); border:1px solid #86efac; }
+.um-overlay  { display:none; position:fixed; inset:0; background:rgba(10,20,40,.55); backdrop-filter:blur(4px); z-index:5000; align-items:center; justify-content:center; }
+.um-overlay.open { display:flex; }
+.um-modal    { background:#fff; border-radius:var(--radius); box-shadow:0 12px 48px rgba(13,59,110,.28); width:min(96vw,460px); overflow:hidden; }
+.um-modal-hdr { background:linear-gradient(90deg,var(--blue-deep),var(--blue-mid)); padding:15px 20px; display:flex; align-items:center; justify-content:space-between; }
+.um-modal-hdr span { color:#fff; font-weight:700; font-size:.97rem; }
+.um-modal-hdr button { background:rgba(255,255,255,.18); border:none; border-radius:50%; width:28px; height:28px; color:#fff; font-size:1rem; cursor:pointer; }
+.um-modal-body { padding:22px; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.um-fg { display:flex; flex-direction:column; gap:5px; }
+.um-fg.full { grid-column:1/-1; }
+.um-fg label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--grey-mid); }
+.um-fg .req { color:var(--red); }
+.um-fg input, .um-fg select { border:1px solid var(--grey-border); border-radius:var(--radius-sm); padding:8px 11px; font-size:.88rem; color:var(--grey-dark); transition:.18s; outline:none; width:100%; box-sizing:border-box; }
+.um-fg input:focus, .um-fg select:focus { border-color:var(--blue-accent); box-shadow:0 0 0 3px rgba(66,165,245,.15); }
+.um-toggle-wrap { display:flex; align-items:center; gap:10px; font-size:.87rem; }
+.um-toggle { width:38px; height:20px; border-radius:10px; background:var(--grey-border); cursor:pointer; position:relative; transition:.2s; flex-shrink:0; }
+.um-toggle::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:var(--grey-mid); transition:.2s; }
+.um-toggle.on { background:var(--blue-mid); }
+.um-toggle.on::after { left:21px; background:#fff; }
+.um-modal-footer { display:flex; justify-content:flex-end; gap:8px; padding:14px 22px; border-top:1px solid var(--grey-border); }
+
 /* ── Admin / Classes ── */
 .classes-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
@@ -734,10 +767,187 @@ tfoot td.gt-label { font-size: 0.82rem; letter-spacing: 0.3px; }
 .ss-option:hover, .ss-option.focused { background: var(--blue-pale); color: var(--blue-mid); }
 .ss-option.selected { font-weight: 600; color: var(--blue-deep); }
 .ss-option.ss-empty { color: var(--grey-mid); font-style: italic; pointer-events: none; }
+
+/* ── LOGIN SCREEN ── */
+.login-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(135deg, #e8f1fb 0%, #f4f8ff 60%, #eaf3ff 100%);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.3s ease;
+}
+.login-overlay.show {
+  opacity: 1; visibility: visible;
+}
+.login-container {
+  background: var(--white); border-radius: var(--radius);
+  box-shadow: 0 10px 40px rgba(13,59,110,0.25);
+  padding: 40px; max-width: 380px; width: 90%;
+  animation: slideUp 0.4s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.login-header {
+  text-align: center; margin-bottom: 32px;
+}
+.login-logo {
+  font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700;
+  color: var(--blue-deep); margin-bottom: 8px;
+}
+.login-school {
+  font-size: 0.9rem; color: var(--grey-mid); font-weight: 500;
+}
+.login-form-group {
+  margin-bottom: 18px;
+}
+.login-label {
+  display: block; font-size: 0.85rem; font-weight: 600;
+  color: var(--grey-dark); margin-bottom: 6px;
+}
+.login-input {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--grey-border);
+  border-radius: var(--radius-sm); font-size: 0.88rem; font-family: inherit;
+  color: var(--grey-dark); outline: none; background: var(--grey-light);
+  transition: all 0.2s;
+}
+.login-input:focus {
+  border-color: var(--blue-accent); background: var(--white);
+  box-shadow: 0 0 0 3px rgba(66,165,245,0.1);
+}
+.login-btn {
+  width: 100%; padding: 11px; border: none; border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--blue-deep), var(--blue-mid));
+  color: white; font-weight: 600; font-size: 0.88rem; cursor: pointer;
+  transition: all 0.2s; margin-top: 8px;
+}
+.login-btn:hover {
+  transform: translateY(-2px); box-shadow: 0 4px 16px rgba(13,59,110,0.3);
+}
+.login-btn:active { transform: translateY(0); }
+.login-error {
+  background: #ffebee; color: #c62828; padding: 10px 12px;
+  border-radius: var(--radius-sm); font-size: 0.8rem; margin-bottom: 16px;
+  display: none; text-align: center; font-weight: 500;
+}
+.login-footer {
+  text-align: center; margin-top: 20px; font-size: 0.75rem;
+  color: var(--grey-mid);
+}
+.logout-btn {
+  background: var(--red); color: white; padding: 6px 12px;
+  border: none; border-radius: 6px; font-size: 0.75rem;
+  cursor: pointer; transition: all 0.2s; font-weight: 600;
+}
+.logout-btn:hover { opacity: 0.88; }
+.user-info-header {
+  display: flex; align-items: center; gap: 8px; margin-left: auto;
+  color: white; font-size: 0.85rem;
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255,255,255,0.3); display: flex;
+  align-items: center; justify-content: center; font-weight: 600;
+}
 </style>
 </head>
 <body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="loginOverlay" class="login-overlay show">
+  <div class="login-container">
+    <div class="login-header">
+      <div class="login-logo">🎓</div>
+      <div class="login-logo" style="font-size: 1.3rem;">Ghazali Model School</div>
+      <div class="login-school">Fee Management System</div>
+    </div>
+    <form onsubmit="return handleLogin(event)">
+      <div id="loginError" class="login-error"></div>
+      <div class="login-form-group">
+        <label class="login-label">Username</label>
+        <input type="text" id="loginUsername" class="login-input" placeholder="Enter username" autocomplete="off">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label">Password</label>
+        <input type="password" id="loginPassword" class="login-input" placeholder="Enter password" autocomplete="off">
+      </div>
+      <button type="submit" class="login-btn">🔓 Sign In</button>
+    </form>
+    <div class="login-footer">
+      <p style="margin-bottom: 8px;">Demo Accounts:</p>
+      <p style="font-size: 0.7rem; line-height: 1.5;">
+        <strong>Super User:</strong> super / (any password)<br>
+        <strong>Admin:</strong> admin / (any password)<br>
+        <strong>Operator:</strong> op / (any password)
+      </p>
+    </div>
+  </div>
+</div>
+
 <script>
+  let currentAppUser = null;
+  function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    
+    if (!username || !password) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = '⚠️ Please enter username and password';
+      return false;
+    }
+    
+    const user = appUsers.find(u => u.username.toLowerCase() === username && u.active);
+    if (!user) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = '❌ Invalid username or user is inactive';
+      return false;
+    }
+    
+    // Demo: accept any password for now
+    currentAppUser = { id: user.id, username: user.username, role: user.role, displayName: user.displayName };
+    user.lastLogin = new Date().toISOString();
+    persistAppUsers();
+    
+    document.getElementById('loginOverlay').classList.remove('show');
+    showToast(`Welcome ${user.displayName}!`, 'success', 2000);
+    updateHeaderUser();
+    updateMainAccessibility();
+    return false;
+  }
+  
+  function handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+      currentAppUser = null;
+      document.getElementById('loginUsername').value = '';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginError').style.display = 'none';
+      document.getElementById('loginOverlay').classList.add('show');
+      updateMainAccessibility();
+      showToast('Logged out successfully', 'info', 1500);
+    }
+  }
+  
+  function updateHeaderUser() {
+    const headerUserArea = document.getElementById('headerUserArea');
+    if (headerUserArea && currentAppUser) {
+      headerUserArea.innerHTML = `
+        <div class="user-info-header">
+          <div class="user-avatar">${currentAppUser.displayName.charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-weight: 600; font-size: 0.9rem;">${currentAppUser.displayName}</div>
+            <div style="font-size: 0.75rem; opacity: 0.8;">${currentAppUser.role.replace('superuser', 'Super User').replace('operator', 'Operator')}</div>
+          </div>
+          <button class="logout-btn" onclick="handleLogout()">🚪 Logout</button>
+        </div>
+      `;
+    }
+  }
+</script>
+
+<script>
+
   function updateHeaderHeight() {
     const h = document.querySelector('.header');
     if (h) document.documentElement.style.setProperty('--header-height', h.offsetHeight + 'px');
@@ -767,6 +977,7 @@ tfoot td.gt-label { font-size: 0.82rem; letter-spacing: 0.3px; }
     <button class="tab-btn" onclick="switchTab('ledger')">📒 Ledger</button>
     <button class="tab-btn" onclick="switchTab('academic')">🎓 Academic</button>
   </div>
+  <div id="headerUserArea"></div>
 </div>
 
 <!-- ══ MAIN ══ -->
@@ -1606,7 +1817,26 @@ tfoot td.gt-label { font-size: 0.82rem; letter-spacing: 0.3px; }
     </div><!-- /right panel -->
 
   </div><!-- /admin 3-panel grid -->
-</div>
+
+  <!-- ══ USERS MANAGEMENT ══ -->
+  <div style="margin-top:22px">
+    <div class="users-card">
+      <div class="users-card-header">
+        <span class="card-title">👥 User Management</span>
+        <button class="btn btn-outline" onclick="openAddUser()" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.35);color:#fff;font-size:.82rem;padding:6px 14px">➕ Add User</button>
+      </div>
+      <div style="padding:0">
+        <table class="admin-table">
+          <thead><tr>
+            <th>Username</th><th>Display Name</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="usersTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-admin -->
 
 <!-- ══ LOGO CROP MODAL ══ -->
 <div id="logoCropModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(10,20,40,0.72);align-items:center;justify-content:center">
@@ -1762,6 +1992,49 @@ tfoot td.gt-label { font-size: 0.82rem; letter-spacing: 0.3px; }
         <button class="btn btn-danger" onclick="closeStudentCropModal()" style="font-size:.82rem">Cancel</button>
         <button class="btn btn-success" onclick="saveCroppedStudentPhoto()" style="font-size:.82rem;padding:8px 22px">💾 Save Photo</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ USER MODAL ══ -->
+<div class="um-overlay" id="userModalOverlay" onclick="if(event.target===this)closeUserModal()">
+  <div class="um-modal">
+    <div class="um-modal-hdr">
+      <span id="userModalTitle">Add User</span>
+      <button onclick="closeUserModal()">✕</button>
+    </div>
+    <div class="um-modal-body">
+      <div class="um-fg">
+        <label>Username <span class="req">*</span></label>
+        <input type="text" id="um-username" placeholder="e.g. john_doe" autocomplete="off"/>
+      </div>
+      <div class="um-fg">
+        <label>Display Name</label>
+        <input type="text" id="um-displayname" placeholder="e.g. John Doe"/>
+      </div>
+      <div class="um-fg">
+        <label>Role <span class="req">*</span></label>
+        <select id="um-role">
+          <option value="operator">Data Entry Operator</option>
+          <option value="admin" id="um-role-admin">Admin</option>
+          <option value="superuser" id="um-role-superuser" style="display:none">Super User</option>
+        </select>
+      </div>
+      <div class="um-fg">
+        <label>Password <span class="req" id="um-pass-req">*</span></label>
+        <input type="password" id="um-password" placeholder="Enter password" autocomplete="new-password"/>
+      </div>
+      <div class="um-fg full">
+        <label>Status</label>
+        <div class="um-toggle-wrap">
+          <div class="um-toggle on" id="um-status-toggle" onclick="this.classList.toggle('on')"></div>
+          <span>Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="um-modal-footer">
+      <button class="btn btn-outline" onclick="closeUserModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">💾 Save User</button>
     </div>
   </div>
 </div>
@@ -4075,8 +4348,6 @@ function executeFeeCollection(){
     amount:amount,
     debit:debitAcctName,
     credit:'FeeStudent',
-    debitKey:fcMethodVal,
-    creditKey:'Income::FeeStudent',
     desc:`Monthly fee — ${s.name} (${s.cls}) — ${month} ${year}${remarks?' | '+remarks:''}`
   });
   // Debit selected payment method; Credit each extra charge's own Income account
@@ -4091,8 +4362,6 @@ function executeFeeCollection(){
       amount:Number(e.amount||0),
       debit:debitAcctName,
       credit:acctName,
-      debitKey:fcMethodVal,
-      creditKey:'Income::'+acctName,
       desc:`${e.label} — ${s.name} (${s.cls}) — ${month} ${year}`
     });
   });
@@ -6592,6 +6861,131 @@ function executePromotion(){
   msgEl.textContent=`✅ ${count} student(s) promoted from ${fromCls} → ${toCls} successfully!`;
   showToast(`🎓 ${count} student(s) promoted to ${toCls}`,'success',3500);
   setTimeout(()=>{ closePromoteModal(); },2200);
+}
+
+// ══ USERS MANAGEMENT ══
+function umHash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8,'0');
+}
+function umUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function umEsc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+let appUsers = (()=>{ try { const r=localStorage.getItem('app_users'); return r?JSON.parse(r):[]; } catch{return[];} })();
+if (!appUsers.length) appUsers = [
+  { id:'u1', username:'super',   displayName:'SuperUser',           role:'superuser', active:true,  passwordHash:umHash('-'), lastLogin:null },
+  { id:'u2', username:'admin',   displayName:'Administrator',       role:'admin',     active:true,  passwordHash:umHash('-'), lastLogin:null },
+  { id:'u3', username:'op',      displayName:'Data Entry Operator', role:'operator',  active:true,  passwordHash:umHash('-'), lastLogin:null },
+];
+function persistAppUsers() { try { localStorage.setItem('app_users', JSON.stringify(appUsers)); } catch{} }
+
+let umEditId = null;
+
+function renderUsersTable(tid='usersTbody') {
+  const el = document.getElementById(tid); if(!el) return;
+  el.innerHTML = appUsers.map(u=>`<tr>
+    <td style="font-family:monospace;font-weight:600">${umEsc(u.username)}</td>
+    <td>${umEsc(u.displayName||'')}</td>
+    <td><span class="user-role-tag ${u.role==='superuser'?'role-su':u.role==='admin'?'role-admin':'role-op'}">${u.role==='superuser'?'Super User':u.role==='admin'?'Admin':'Operator'}</span></td>
+    <td><span style="color:${u.active?'var(--green)':'var(--red)'}; font-weight:600">${u.active?'Active':'Inactive'}</span></td>
+    <td style="font-size:.78rem;color:var(--grey-mid)">${u.lastLogin?new Date(u.lastLogin).toLocaleString():'Never'}</td>
+    <td><div style="display:flex;gap:5px">
+      <button class="btn btn-outline btn-sm" onclick="openEditUser('${u.id}')">✏️ Edit</button>
+      ${u.id!=='u1'?`<button class="btn btn-sm" style="background:var(--grey-light);border:1px solid var(--grey-border);color:var(--red)" onclick="removeUser('${u.id}')">🗑</button>`:''}
+    </div></td>
+  </tr>`).join('');
+}
+
+function openAddUser() {
+  umEditId = null;
+  document.getElementById('userModalTitle').textContent = 'Add User';
+  ['um-username','um-displayname','um-password'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('um-role').value = 'operator';
+  document.getElementById('um-status-toggle').classList.add('on');
+  document.getElementById('um-pass-req').style.display = '';
+  document.getElementById('um-role-superuser').style.display = currentAppUser.role==='superuser'?'':'none';
+  document.getElementById('um-role-admin').style.display    = currentAppUser.role==='superuser'?'':'none';
+  document.getElementById('userModalOverlay').classList.add('open');
+}
+function openEditUser(id) {
+  const u = appUsers.find(x=>x.id===id); if(!u) return;
+  umEditId = id;
+  document.getElementById('userModalTitle').textContent = 'Edit User';
+  document.getElementById('um-username').value    = u.username;
+  document.getElementById('um-displayname').value = u.displayName||'';
+  document.getElementById('um-password').value    = '';
+  document.getElementById('um-role').value        = u.role;
+  document.getElementById('um-status-toggle').classList.toggle('on', u.active);
+  document.getElementById('um-pass-req').style.display = 'none';
+  document.getElementById('um-role-superuser').style.display = currentAppUser.role==='superuser'?'':'none';
+  document.getElementById('um-role-admin').style.display    = currentAppUser.role==='superuser'?'':'none';
+  document.getElementById('userModalOverlay').classList.add('open');
+}
+function closeUserModal() { document.getElementById('userModalOverlay').classList.remove('open'); }
+
+function saveUser() {
+  const username    = document.getElementById('um-username').value.trim().toLowerCase();
+  const displayName = document.getElementById('um-displayname').value.trim();
+  const password    = document.getElementById('um-password').value;
+  const role        = document.getElementById('um-role').value;
+  const active      = document.getElementById('um-status-toggle').classList.contains('on');
+  if (!username) { showToast('Username required','error'); return; }
+  if (!umEditId && !password) { showToast('Password required for new user','error'); return; }
+  const existing = appUsers.find(u=>u.username.toLowerCase()===username && u.id!==umEditId);
+  if (existing) { showToast('Username already exists','error'); return; }
+  if (umEditId) {
+    const idx = appUsers.findIndex(u=>u.id===umEditId);
+    if (idx>=0) appUsers[idx] = { ...appUsers[idx], username, displayName, role, active, ...(password?{passwordHash:umHash(password)}:{}) };
+    showToast('User updated','success');
+  } else {
+    appUsers.push({ id:umUid(), username, displayName, role, active, passwordHash:umHash(password), lastLogin:null });
+    showToast('User added','success');
+  }
+  persistAppUsers(); renderUsersTable(); closeUserModal();
+}
+
+function removeUser(id) {
+  if (id==='u1') { showToast('Cannot delete Super User','error'); return; }
+  const u = appUsers.find(x=>x.id===id);
+  if (!confirm(`Remove user "${u?.username}"? This cannot be undone.`)) return;
+  appUsers = appUsers.filter(x=>x.id!==id);
+  persistAppUsers(); renderUsersTable();
+  showToast('User removed','info');
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{ renderUsersTable(); });
+
+// ══ LOGIN FLOW INITIALIZATION ══
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Check if user is already logged in
+  if (currentAppUser) {
+    document.getElementById('loginOverlay').classList.remove('show');
+    updateHeaderUser();
+  } else {
+    document.getElementById('loginOverlay').classList.add('show');
+  }
+  
+  // Prevent main content access without login
+  const mainContent = document.querySelector('.main');
+  if (mainContent) {
+    mainContent.style.pointerEvents = 'none';
+    mainContent.style.opacity = '0.3';
+  }
+}, { once: false });
+
+// Update main content accessibility based on login
+function updateMainAccessibility() {
+  const mainContent = document.querySelector('.main');
+  if (mainContent) {
+    if (currentAppUser) {
+      mainContent.style.pointerEvents = 'auto';
+      mainContent.style.opacity = '1';
+    } else {
+      mainContent.style.pointerEvents = 'none';
+      mainContent.style.opacity = '0.3';
+    }
+  }
 }
 </script>
 
