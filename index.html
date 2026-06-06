@@ -457,6 +457,28 @@ tbody td { padding: 11px 14px; font-size: 0.86rem; color: var(--grey-dark); }
 #globalToast.toast-success { background: linear-gradient(135deg,#1b5e20,#2e7d32); }
 #globalToast.toast-warn { background: linear-gradient(135deg,#e65100,#f57c00); }
 
+/* ── Theme Modal ── */
+#themeModal { display:none;position:fixed;inset:0;z-index:12000;background:rgba(10,20,40,0.72);align-items:center;justify-content:center; }
+#themeModal.open { display:flex; }
+#themeModal .tm-box { background:#fff;border-radius:16px;width:min(95vw,520px);overflow:hidden;box-shadow:0 12px 48px rgba(13,59,110,.28); }
+#themeModal .tm-hdr { background:linear-gradient(90deg,var(--blue-deep),var(--blue-mid));padding:16px 20px;display:flex;align-items:center;justify-content:space-between; }
+#themeModal .tm-hdr span { color:#fff;font-weight:700;font-size:1rem; }
+#themeModal .tm-hdr button { background:rgba(255,255,255,.18);border:none;border-radius:50%;width:28px;height:28px;color:#fff;font-size:1rem;cursor:pointer; }
+#themeModal .tm-body { padding:20px; }
+.tm-section { margin-bottom:18px; }
+.tm-section label { font-size:.78rem;font-weight:700;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:10px; }
+.tm-palette { display:flex;flex-wrap:wrap;gap:8px; }
+.tm-swatch { width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s,border-color .15s;position:relative; }
+.tm-swatch.active { border-color:#333;transform:scale(1.18); }
+.tm-swatch.active::after { content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.5); }
+.tm-presets { display:flex;flex-wrap:wrap;gap:8px; }
+.tm-preset { padding:6px 14px;border-radius:20px;border:1.5px solid var(--grey-border);font-size:.8rem;font-weight:600;cursor:pointer;background:#fff;color:var(--grey-dark);transition:all .15s; }
+.tm-preset:hover { border-color:var(--blue-accent);color:var(--blue-mid); }
+.tm-preset.active { background:var(--blue-mid);color:#fff;border-color:var(--blue-mid); }
+.tm-preview { display:flex;gap:8px;margin-top:4px;flex-wrap:wrap; }
+.tm-preview-chip { padding:6px 14px;border-radius:8px;font-size:.82rem;font-weight:600; }
+#themeModal .tm-footer { display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--grey-border); }
+
 /* ── Confirm Modal ── */
 #confirmModal { display:none;position:fixed;inset:0;z-index:11000;background:rgba(10,20,40,0.7);align-items:center;justify-content:center; }
 #confirmModal.open { display:flex; }
@@ -1797,6 +1819,18 @@ tfoot td.gt-label { font-size: 0.82rem; letter-spacing: 0.3px; }
         </div>
       </div>
 
+      <!-- Card: Theme Settings -->
+      <div class="card" style="margin-bottom:14px;border-left:4px solid var(--blue-accent);padding:0">
+        <div class="card-title" onclick="toggleAdminCard('themeCardBody','themeCardToggle')" style="cursor:pointer;user-select:none;padding:14px 16px;justify-content:space-between">
+          <span><span class="icon">🎨</span>Theme &amp; Appearance</span>
+          <span class="dash-card-toggle collapsed" id="themeCardToggle">▼</span>
+        </div>
+        <div id="themeCardBody" class="dash-card-body hidden" style="padding:0 16px 16px">
+          <p style="font-size:.83rem;color:var(--grey-mid);margin-bottom:12px;line-height:1.5">Customise the colour scheme of the app.</p>
+          <button class="btn btn-primary" onclick="openThemeModal()" style="width:100%">🎨 Open Theme Editor</button>
+        </div>
+      </div>
+
       <!-- Card: Backup & Restore -->
       <div class="card" style="margin-bottom:0;border-left:4px solid var(--blue-mid);padding:0">
         <div class="card-title" onclick="toggleAdminCard('backupRestoreBody','backupRestoreToggle')" style="cursor:pointer;user-select:none;padding:14px 16px;justify-content:space-between">
@@ -1837,6 +1871,44 @@ tfoot td.gt-label { font-size: 0.82rem; letter-spacing: 0.3px; }
   </div>
 
 </div><!-- /tab-admin -->
+
+<!-- ══ THEME MODAL ══ -->
+<div id="themeModal">
+  <div class="tm-box">
+    <div class="tm-hdr">
+      <span>🎨 Theme &amp; Appearance</span>
+      <button onclick="closeThemeModal()">✕</button>
+    </div>
+    <div class="tm-body">
+      <div class="tm-section">
+        <label>Preset Themes</label>
+        <div class="tm-presets">
+          <button class="tm-preset active" data-preset="blue" onclick="applyPreset('blue',this)">🔵 Ocean Blue</button>
+          <button class="tm-preset" data-preset="green" onclick="applyPreset('green',this)">🟢 Forest Green</button>
+          <button class="tm-preset" data-preset="purple" onclick="applyPreset('purple',this)">🟣 Royal Purple</button>
+          <button class="tm-preset" data-preset="teal" onclick="applyPreset('teal',this)">🩵 Teal</button>
+          <button class="tm-preset" data-preset="maroon" onclick="applyPreset('maroon',this)">🔴 Maroon</button>
+        </div>
+      </div>
+      <div class="tm-section">
+        <label>Primary Colour</label>
+        <div class="tm-palette" id="tmPalette"></div>
+      </div>
+      <div class="tm-section">
+        <label>Preview</label>
+        <div class="tm-preview">
+          <div class="tm-preview-chip" id="tmPrevPrimary" style="color:#fff">Primary</div>
+          <div class="tm-preview-chip" id="tmPrevAccent" style="color:#fff">Accent</div>
+          <div class="tm-preview-chip" id="tmPrevPale" style="color:var(--grey-dark)">Background</div>
+        </div>
+      </div>
+    </div>
+    <div class="tm-footer">
+      <button class="btn btn-outline" onclick="closeThemeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTheme()">💾 Save &amp; Apply</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ LOGO CROP MODAL ══ -->
 <div id="logoCropModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(10,20,40,0.72);align-items:center;justify-content:center">
@@ -6467,6 +6539,74 @@ function clearAllData(type){
     showToast(`✅ ${labels[type].charAt(0).toUpperCase()+labels[type].slice(1)} cleared.`,'success');
   });
 }
+
+/* ── Theme Modal ── */
+const TM_PRESETS = {
+  blue:   { deep:'#0D3B6E', mid:'#1565C0', light:'#1976D2', pale:'#E3F0FF', accent:'#42A5F5' },
+  green:  { deep:'#1B5E20', mid:'#2E7D32', light:'#388E3C', pale:'#E8F5E9', accent:'#66BB6A' },
+  purple: { deep:'#4A148C', mid:'#6A1B9A', light:'#7B1FA2', pale:'#F3E5F5', accent:'#AB47BC' },
+  teal:   { deep:'#004D40', mid:'#00695C', light:'#00796B', pale:'#E0F2F1', accent:'#26A69A' },
+  maroon: { deep:'#4E342E', mid:'#6D4C41', light:'#795548', pale:'#FBE9E7', accent:'#FF7043' },
+};
+const TM_SWATCHES = ['#1565C0','#1976D2','#0288D1','#0097A7','#00796B','#388E3C','#7B1FA2','#6A1B9A','#AD1457','#C62828','#E64A19','#F57C00','#5D4037','#455A64'];
+let _tmCurrent = null;
+
+function openThemeModal(){
+  const saved = JSON.parse(localStorage.getItem('appTheme')||'{}');
+  _tmCurrent = Object.assign({}, TM_PRESETS.blue, saved);
+  _buildSwatches();
+  _syncPresetButtons();
+  _updatePreview();
+  document.getElementById('themeModal').classList.add('open');
+}
+function closeThemeModal(){ document.getElementById('themeModal').classList.remove('open'); }
+
+function _buildSwatches(){
+  const pal = document.getElementById('tmPalette');
+  pal.innerHTML = TM_SWATCHES.map(c=>`<div class="tm-swatch${_tmCurrent.mid===c?' active':''}" style="background:${c}" title="${c}" onclick="_pickSwatch('${c}',this)"></div>`).join('');
+}
+function _pickSwatch(color, el){
+  document.querySelectorAll('.tm-swatch').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  // Derive palette from picked mid colour
+  _tmCurrent = { ..._tmCurrent, mid:color, light:color, accent:color };
+  document.querySelectorAll('.tm-preset').forEach(b=>b.classList.remove('active'));
+  _updatePreview();
+}
+function applyPreset(key, el){
+  document.querySelectorAll('.tm-preset').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  _tmCurrent = { ...TM_PRESETS[key] };
+  _buildSwatches();
+  _updatePreview();
+}
+function _syncPresetButtons(){
+  document.querySelectorAll('.tm-preset').forEach(b=>{
+    const p = TM_PRESETS[b.dataset.preset];
+    b.classList.toggle('active', p && p.mid===_tmCurrent.mid);
+  });
+}
+function _updatePreview(){
+  document.getElementById('tmPrevPrimary').style.background = _tmCurrent.mid;
+  document.getElementById('tmPrevAccent').style.background  = _tmCurrent.accent;
+  document.getElementById('tmPrevPale').style.background    = _tmCurrent.pale;
+}
+function saveTheme(){
+  localStorage.setItem('appTheme', JSON.stringify(_tmCurrent));
+  _applyThemeVars(_tmCurrent);
+  closeThemeModal();
+  showToast && showToast('🎨 Theme saved!','success');
+}
+function _applyThemeVars(t){
+  const r = document.documentElement.style;
+  r.setProperty('--blue-deep',   t.deep);
+  r.setProperty('--blue-mid',    t.mid);
+  r.setProperty('--blue-light',  t.light);
+  r.setProperty('--blue-pale',   t.pale);
+  r.setProperty('--blue-accent', t.accent);
+}
+// Auto-apply saved theme on load
+(function(){ const t=JSON.parse(localStorage.getItem('appTheme')||'null'); if(t) _applyThemeVars(t); })();
 
 function backupData(){
   const data=JSON.stringify({
