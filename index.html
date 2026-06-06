@@ -458,6 +458,73 @@ tbody td { padding: 11px 14px; font-size: 0.86rem; color: var(--grey-dark); }
 #globalToast.toast-warn { background: linear-gradient(135deg,#e65100,#f57c00); }
 
 /* ── Theme Modal ── */
+/* ── Glassmorphism Theme ── */
+body.glass-theme {
+  background: linear-gradient(135deg,#0f0c29,#302b63,#24243e) fixed;
+  min-height:100vh;
+}
+body.glass-theme.glass-has-bg {
+  background-image: var(--glass-bg-image) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+}
+body.glass-theme.glass-has-bg::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: linear-gradient(135deg,rgba(15,12,41,0.72),rgba(48,43,99,0.68),rgba(36,36,62,0.72));
+  z-index:0;
+  pointer-events:none;
+}
+body.glass-theme.glass-has-bg > * { position:relative; z-index:1; }
+:root {
+  --glass-card-alpha: 0.10;
+  --glass-accent-color: #a78bfa;
+  --glass-primary-color: #302b63;
+  --glass-bg-grad: #0f0c29, #302b63, #24243e;
+}
+body.glass-theme .card,
+body.glass-theme .users-card,
+body.glass-theme .toolbar,
+body.glass-theme .tab-bar,
+body.glass-theme .dash-stat {
+  background: rgba(255,255,255,var(--glass-card-alpha)) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28) !important;
+}
+body.glass-theme .card-title,
+body.glass-theme .dash-stat-label,
+body.glass-theme .dash-stat-val,
+body.glass-theme label,
+body.glass-theme th,
+body.glass-theme td,
+body.glass-theme p,
+body.glass-theme h2,
+body.glass-theme h3,
+body.glass-theme span:not(.badge):not(.role-badge):not(.status-badge) {
+  color: rgba(255,255,255,0.92) !important;
+}
+body.glass-theme input,
+body.glass-theme select,
+body.glass-theme textarea {
+  background: rgba(255,255,255,0.12) !important;
+  border-color: rgba(255,255,255,0.25) !important;
+  color: #fff !important;
+  backdrop-filter: blur(8px);
+}
+body.glass-theme input::placeholder { color:rgba(255,255,255,0.5) !important; }
+body.glass-theme .tab-btn { color:rgba(255,255,255,0.75) !important; }
+body.glass-theme .tab-btn.active { background:rgba(255,255,255,0.22) !important; color:#fff !important; }
+body.glass-theme .btn-primary { background:rgba(255,255,255,0.25) !important; border-color:rgba(255,255,255,0.4) !important; color:#fff !important; backdrop-filter:blur(8px); }
+body.glass-theme .btn-outline { background:transparent !important; border-color:rgba(255,255,255,0.35) !important; color:rgba(255,255,255,0.85) !important; }
+body.glass-theme table tr:hover td { background:rgba(255,255,255,0.07) !important; }
+body.glass-theme #appHeader { background:rgba(255,255,255,0.08) !important; backdrop-filter:blur(20px) !important; border-bottom:1px solid rgba(255,255,255,0.15) !important; }
+
 #themeModal { display:none;position:fixed;inset:0;z-index:12000;background:rgba(10,20,40,0.72);align-items:center;justify-content:center; }
 #themeModal.open { display:flex; }
 #themeModal .tm-box { background:#fff;border-radius:16px;width:min(95vw,520px);overflow:hidden;box-shadow:0 12px 48px rgba(13,59,110,.28); }
@@ -1888,12 +1955,80 @@ tfoot td.gt-label { font-size: 0.82rem; letter-spacing: 0.3px; }
           <button class="tm-preset" data-preset="purple" onclick="applyPreset('purple',this)">🟣 Royal Purple</button>
           <button class="tm-preset" data-preset="teal" onclick="applyPreset('teal',this)">🩵 Teal</button>
           <button class="tm-preset" data-preset="maroon" onclick="applyPreset('maroon',this)">🔴 Maroon</button>
+          <button class="tm-preset" data-preset="glass" onclick="applyPreset('glass',this)" style="background:linear-gradient(135deg,#302b63,#24243e);color:#a78bfa;border-color:#a78bfa">🪟 Glassmorphism</button>
         </div>
       </div>
-      <div class="tm-section">
+
+      <!-- Standard (non-glass) colour picker -->
+      <div class="tm-section" id="tmStandardSection">
         <label>Primary Colour</label>
         <div class="tm-palette" id="tmPalette"></div>
       </div>
+
+      <!-- Glass-only controls -->
+      <div id="tmGlassControls" style="display:none">
+        <div class="tm-section">
+          <label>🎨 Colours</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:.75rem;color:var(--grey-mid);margin-bottom:5px;font-weight:600">Primary</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="color" id="tmGlassPrimary" value="#302b63" oninput="_onGlassColor()" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px;background:none">
+                <span id="tmGlassPrimaryHex" style="font-size:.72rem;color:var(--grey-mid);font-family:monospace">#302b63</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:.75rem;color:var(--grey-mid);margin-bottom:5px;font-weight:600">Accent</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="color" id="tmGlassAccent" value="#a78bfa" oninput="_onGlassColor()" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px;background:none">
+                <span id="tmGlassAccentHex" style="font-size:.72rem;color:var(--grey-mid);font-family:monospace">#a78bfa</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:.75rem;color:var(--grey-mid);margin-bottom:5px;font-weight:600">Background</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="color" id="tmGlassBg" value="#0f0c29" oninput="_onGlassColor()" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px;background:none">
+                <span id="tmGlassBgHex" style="font-size:.72rem;color:var(--grey-mid);font-family:monospace">#0f0c29</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tm-section">
+          <label>💧 Card Transparency
+            <span style="font-weight:400;font-size:.8rem;color:var(--grey-mid);margin-left:6px">Fill: <span id="tmAlphaVal">10</span>%</span>
+          </label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:.75rem;color:var(--grey-mid)">Ghost</span>
+            <input type="range" id="tmGlassAlpha" min="2" max="60" value="10" step="1"
+              oninput="_onGlassAlpha(this.value)"
+              style="flex:1;accent-color:#a78bfa;height:6px;cursor:pointer">
+            <span style="font-size:.75rem;color:var(--grey-mid)">Solid</span>
+          </div>
+          <div id="tmAlphaPreviewBar" style="margin-top:8px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.10);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center">
+            <span style="color:#fff;font-size:.75rem;opacity:.85">Card preview</span>
+          </div>
+        </div>
+
+        <div class="tm-section" id="tmBgSection">
+          <label>🖼️ Background Image <span style="font-weight:400;font-size:.8rem;color:var(--grey-mid)">(optional)</span></label>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <input type="text" id="tmBgUrl" placeholder="Paste image URL…" style="flex:1;padding:7px 10px;border:1.5px solid var(--grey-border);border-radius:var(--radius-sm);font-size:.85rem;outline:none" oninput="_previewBgUrl(this.value)">
+            <label style="cursor:pointer;padding:7px 12px;background:var(--blue-mid);color:#fff;border-radius:var(--radius-sm);font-size:.82rem;white-space:nowrap">
+              📁 Upload
+              <input type="file" accept="image/*" style="display:none" onchange="_handleBgUpload(this)">
+            </label>
+            <button onclick="_clearBgImage()" title="Remove background" style="padding:6px 10px;border:1.5px solid var(--grey-border);border-radius:var(--radius-sm);background:transparent;cursor:pointer;font-size:.9rem">✕</button>
+          </div>
+          <div id="tmBgPreviewWrap" style="display:none;margin-top:6px;border-radius:var(--radius-sm);overflow:hidden;height:80px;position:relative">
+            <img id="tmBgPreviewImg" src="" alt="bg preview" style="width:100%;height:100%;object-fit:cover;display:block">
+            <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(15,12,41,0.6),rgba(48,43,99,0.55));display:flex;align-items:center;justify-content:center">
+              <span style="color:#fff;font-size:.78rem;opacity:.85">Preview with glass overlay</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="tm-section">
         <label>Preview</label>
         <div class="tm-preview">
@@ -6547,6 +6682,7 @@ const TM_PRESETS = {
   purple: { deep:'#4A148C', mid:'#6A1B9A', light:'#7B1FA2', pale:'#F3E5F5', accent:'#AB47BC' },
   teal:   { deep:'#004D40', mid:'#00695C', light:'#00796B', pale:'#E0F2F1', accent:'#26A69A' },
   maroon: { deep:'#4E342E', mid:'#6D4C41', light:'#795548', pale:'#FBE9E7', accent:'#FF7043' },
+  glass:  { deep:'#0f0c29', mid:'#302b63', light:'#24243e', pale:'rgba(255,255,255,0.08)', accent:'#a78bfa', _glass:true, glassAlpha:10, glassPrimary:'#302b63', glassAccent:'#a78bfa', glassBg:'#0f0c29' },
 };
 const TM_SWATCHES = ['#1565C0','#1976D2','#0288D1','#0097A7','#00796B','#388E3C','#7B1FA2','#6A1B9A','#AD1457','#C62828','#E64A19','#F57C00','#5D4037','#455A64'];
 let _tmCurrent = null;
@@ -6557,10 +6693,47 @@ function openThemeModal(){
   _buildSwatches();
   _syncPresetButtons();
   _updatePreview();
+  const isGlass = !!_tmCurrent._glass;
+  document.getElementById('tmStandardSection').style.display = isGlass ? 'none' : '';
+  document.getElementById('tmGlassControls').style.display  = isGlass ? '' : 'none';
+  if(isGlass) _syncGlassControls();
+  if(_tmCurrent.bgImage){ document.getElementById('tmBgUrl').value=''; _showBgPreview(_tmCurrent.bgImage); }
+  else { document.getElementById('tmBgUrl').value=''; _hideBgPreview(); }
   document.getElementById('themeModal').classList.add('open');
 }
 function closeThemeModal(){ document.getElementById('themeModal').classList.remove('open'); }
 
+function _syncGlassControls(){
+  const alpha   = _tmCurrent.glassAlpha   ?? 10;
+  const primary = _tmCurrent.glassPrimary ?? '#302b63';
+  const accent  = _tmCurrent.glassAccent  ?? '#a78bfa';
+  const bg      = _tmCurrent.glassBg      ?? '#0f0c29';
+  document.getElementById('tmGlassAlpha').value   = alpha;
+  document.getElementById('tmAlphaVal').textContent = alpha;
+  document.getElementById('tmGlassPrimary').value = primary;
+  document.getElementById('tmGlassPrimaryHex').textContent = primary;
+  document.getElementById('tmGlassAccent').value  = accent;
+  document.getElementById('tmGlassAccentHex').textContent  = accent;
+  document.getElementById('tmGlassBg').value      = bg;
+  document.getElementById('tmGlassBgHex').textContent      = bg;
+  document.getElementById('tmAlphaPreviewBar').style.background = `rgba(255,255,255,${alpha/100})`;
+}
+function _onGlassColor(){
+  const primary = document.getElementById('tmGlassPrimary').value;
+  const accent  = document.getElementById('tmGlassAccent').value;
+  const bg      = document.getElementById('tmGlassBg').value;
+  document.getElementById('tmGlassPrimaryHex').textContent = primary;
+  document.getElementById('tmGlassAccentHex').textContent  = accent;
+  document.getElementById('tmGlassBgHex').textContent      = bg;
+  Object.assign(_tmCurrent, { glassPrimary:primary, glassAccent:accent, glassBg:bg,
+    deep:bg, mid:primary, light:primary, accent:accent });
+  _updatePreview();
+}
+function _onGlassAlpha(val){
+  _tmCurrent.glassAlpha = Number(val);
+  document.getElementById('tmAlphaVal').textContent = val;
+  document.getElementById('tmAlphaPreviewBar').style.background = `rgba(255,255,255,${val/100})`;
+}
 function _buildSwatches(){
   const pal = document.getElementById('tmPalette');
   pal.innerHTML = TM_SWATCHES.map(c=>`<div class="tm-swatch${_tmCurrent.mid===c?' active':''}" style="background:${c}" title="${c}" onclick="_pickSwatch('${c}',this)"></div>`).join('');
@@ -6568,7 +6741,6 @@ function _buildSwatches(){
 function _pickSwatch(color, el){
   document.querySelectorAll('.tm-swatch').forEach(s=>s.classList.remove('active'));
   el.classList.add('active');
-  // Derive palette from picked mid colour
   _tmCurrent = { ..._tmCurrent, mid:color, light:color, accent:color };
   document.querySelectorAll('.tm-preset').forEach(b=>b.classList.remove('active'));
   _updatePreview();
@@ -6576,9 +6748,52 @@ function _pickSwatch(color, el){
 function applyPreset(key, el){
   document.querySelectorAll('.tm-preset').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+  const prev = _tmCurrent;
   _tmCurrent = { ...TM_PRESETS[key] };
+  if(_tmCurrent._glass && prev.bgImage) _tmCurrent.bgImage = prev.bgImage;
   _buildSwatches();
   _updatePreview();
+  const isGlass = !!_tmCurrent._glass;
+  document.getElementById('tmStandardSection').style.display = isGlass ? 'none' : '';
+  document.getElementById('tmGlassControls').style.display  = isGlass ? '' : 'none';
+  if(isGlass){ _syncGlassControls(); }
+  if(isGlass && _tmCurrent.bgImage) _showBgPreview(_tmCurrent.bgImage);
+  else if(!isGlass) _hideBgPreview();
+}
+function _toggleBgSection(show){
+  document.getElementById('tmBgSection').style.display = show ? '' : 'none';
+}
+function _showBgPreview(src){
+  const img = document.getElementById('tmBgPreviewImg');
+  const wrap = document.getElementById('tmBgPreviewWrap');
+  img.src = src;
+  wrap.style.display = '';
+}
+function _hideBgPreview(){
+  document.getElementById('tmBgPreviewWrap').style.display = 'none';
+  document.getElementById('tmBgPreviewImg').src = '';
+}
+function _previewBgUrl(url){
+  if(!url){ _hideBgPreview(); delete _tmCurrent.bgImage; return; }
+  _tmCurrent.bgImage = url;
+  _showBgPreview(url);
+}
+function _handleBgUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _tmCurrent.bgImage = e.target.result;
+    _showBgPreview(e.target.result);
+    document.getElementById('tmBgUrl').value = '';
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+function _clearBgImage(){
+  delete _tmCurrent.bgImage;
+  document.getElementById('tmBgUrl').value = '';
+  _hideBgPreview();
 }
 function _syncPresetButtons(){
   document.querySelectorAll('.tm-preset').forEach(b=>{
@@ -6604,6 +6819,31 @@ function _applyThemeVars(t){
   r.setProperty('--blue-light',  t.light);
   r.setProperty('--blue-pale',   t.pale);
   r.setProperty('--blue-accent', t.accent);
+  document.body.classList.toggle('glass-theme', !!t._glass);
+  if(t._glass){
+    const alpha   = (t.glassAlpha ?? 10) / 100;
+    const primary = t.glassPrimary ?? '#302b63';
+    const accent  = t.glassAccent  ?? '#a78bfa';
+    const bg      = t.glassBg      ?? '#0f0c29';
+    r.setProperty('--glass-card-alpha',   String(alpha));
+    r.setProperty('--glass-accent-color', accent);
+    r.setProperty('--glass-primary-color',primary);
+    r.setProperty('--glass-bg-grad',      `${bg}, ${primary}, ${bg}`);
+    // Re-apply body gradient with user colours
+    document.body.style.background = `linear-gradient(135deg,${bg},${primary},${bg}) fixed`;
+    if(t.bgImage){
+      r.setProperty('--glass-bg-image', `url("${t.bgImage}")`);
+      document.body.classList.add('glass-has-bg');
+    } else {
+      r.removeProperty('--glass-bg-image');
+      document.body.classList.remove('glass-has-bg');
+    }
+  } else {
+    document.body.style.background = '';
+    r.removeProperty('--glass-card-alpha');
+    r.removeProperty('--glass-bg-image');
+    document.body.classList.remove('glass-has-bg');
+  }
 }
 // Auto-apply saved theme on load
 (function(){ const t=JSON.parse(localStorage.getItem('appTheme')||'null'); if(t) _applyThemeVars(t); })();
