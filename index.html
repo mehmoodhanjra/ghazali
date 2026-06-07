@@ -6903,77 +6903,219 @@ function restoreData(event){
 // ══════════════════════════════════════
 //  PERSISTENCE
 // ══════════════════════════════════════
-const LS_KEY = 'ghazali_v9';
+// ── DB.JSON FILE SYSTEM ACCESS API ──
+let _dbFileHandle = null;
+let _dbWriteLock = false;
+let _dbWriteQueued = false;
+
+async function _getDbHandle(create=false){
+  if(_dbFileHandle) return _dbFileHandle;
+  try {
+    // Try to get from stored handle via indexedDB (persist across reloads)
+    const stored = await _idbGetHandle();
+    if(stored){ try{ await stored.getFile(); _dbFileHandle=stored; return _dbFileHandle; }catch{} }
+    // Prompt user to pick/create the db.json file
+    if(create){
+      _dbFileHandle = await window.showSaveFilePicker({
+        suggestedName: 'db.json',
+        types:[{description:'JSON Database',accept:{'application/json':['.json']}}],
+        excludeAcceptAllOption:true
+      });
+    } else {
+      _dbFileHandle = await window.showOpenFilePicker({
+        types:[{description:'JSON Database',accept:{'application/json':['.json']}}],
+        excludeAcceptAllOption:true, multiple:false
+      }).then(h=>h[0]);
+    }
+    await _idbSetHandle(_dbFileHandle);
+    return _dbFileHandle;
+  } catch(e){ console.warn('DB handle error:',e); return null; }
+}
+
+// IndexedDB shim for persisting file handle
+function _idbGetHandle(){
+  return new Promise(res=>{
+    const req = indexedDB.open('ghazali_db_meta',1);
+    req.onupgradeneeded = e=>e.target.result.createObjectStore('handles');
+    req.onsuccess = e=>{ const tx=e.target.result.transaction('handles','readonly'); const r=tx.objectStore('handles').get('dbfile'); r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); };
+    req.onerror=()=>res(null);
+  });
+}
+function _idbSetHandle(handle){
+  return new Promise(res=>{
+    const req = indexedDB.open('ghazali_db_meta',1);
+    req.onupgradeneeded = e=>e.target.result.createObjectStore('handles');
+    req.onsuccess = e=>{ const tx=e.target.result.transaction('handles','readwrite'); tx.objectStore('handles').put(handle,'dbfile'); tx.oncomplete=res; tx.onerror=res; };
+    req.onerror=res;
+  });
+}
+
+async function _writeDb(data){
+  if(_dbWriteLock){ _dbWriteQueued=true; return; }
+  _dbWriteLock=true;
+  try {
+    const handle = _dbFileHandle;
+    if(!handle) return;
+    const writable = await handle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+    if(_dbWriteQueued){ _dbWriteQueued=false; _dbWriteLock=false; await _writeDb(data); return; }
+  } catch(e){ console.warn('DB write failed:',e); }
+  _dbWriteLock=false;
+}
+
+async function _readDb(){
+  try {
+    const handle = await _getDbHandle(false);
+    if(!handle) return null;
+    const file = await handle.getFile();
+    const text = await file.text();
+    if(!text.trim()) return null;
+    return JSON.parse(text);
+  } catch(e){ console.warn('DB read failed:',e); return null; }
+}
+
+function _buildDbPayload(){
+  return {
+    students, transactions, nextId, receiptNo,
+    classDefs, CLASSES_arr:[...CLASSES], CLASS_FEES_obj:{...CLASS_FEES},
+    ledgerAccounts, autoFeeDueDay, schoolProfile,
+    ledgerVouchers: window.ledgerVouchers||[],
+    appUsers, appTheme: window._tmCurrent||{}
+  };
+}
 
 function persistAll(){
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify({
-      students, transactions, nextId, receiptNo,
-      classDefs, CLASSES_arr: [...CLASSES], CLASS_FEES_obj: {...CLASS_FEES},
-      ledgerAccounts, autoFeeDueDay, schoolProfile,
-      ledgerVouchers: window.ledgerVouchers||[]
-    }));
-    renderStorageUsage();
-  } catch(e){ console.warn('Persist failed:', e); }
+  if(!_dbFileHandle){ console.warn('No db.json handle yet'); return; }
+  _writeDb(_buildDbPayload()).then(()=>renderStorageUsage()).catch(e=>console.warn('persistAll failed:',e));
 }
 
 function calcStorageUsage(){
-  let totalBytes = 0;
   try {
-    for(let key in localStorage){
-      if(localStorage.hasOwnProperty(key)){
-        totalBytes += localStorage[key].length + key.length;
-      }
-    }
-  } catch(e){ console.warn('Storage calc failed:', e); }
-  return totalBytes;
+    const json = JSON.stringify(_buildDbPayload());
+    return json.length;
+  } catch(e){ return 0; }
 }
 
 function renderStorageUsage(){
   const bytes = calcStorageUsage();
   const kb = (bytes / 1024).toFixed(1);
-  const approxLimit = 5 * 1024; 
+  const approxLimit = 5 * 1024;
   const percentUsed = Math.min(100, (bytes / (approxLimit * 1024)) * 100);
-  
   const el_used = document.getElementById('storageUsedKB');
   const el_avail = document.getElementById('storageAvailKB');
   const el_bar = document.getElementById('storageBar');
-  
   if(el_used) el_used.textContent = kb + ' KB';
   if(el_avail) el_avail.textContent = (approxLimit - kb).toFixed(1) + ' MB';
   if(el_bar) el_bar.style.width = percentUsed + '%';
 }
 
-function loadPersistedData(){
+function _applyDbData(d){
+  if(!d) return false;
+  if(d.students)       { students.length=0; d.students.forEach(s=>students.push(s)); }
+  if(d.transactions)   { transactions.length=0; d.transactions.forEach(t=>transactions.push(t)); }
+  if(d.nextId)         nextId = d.nextId;
+  if(d.receiptNo)      receiptNo = d.receiptNo;
+  if(d.classDefs)      { classDefs.length=0; d.classDefs.forEach(c=>classDefs.push(c)); }
+  if(d.CLASSES_arr)    { CLASSES.length=0; d.CLASSES_arr.forEach(c=>CLASSES.push(c)); }
+  if(d.CLASS_FEES_obj) { Object.keys(CLASS_FEES).forEach(k=>delete CLASS_FEES[k]); Object.assign(CLASS_FEES, d.CLASS_FEES_obj); }
+  if(d.ledgerAccounts) { ledgerAccounts.length=0; d.ledgerAccounts.forEach(a=>ledgerAccounts.push(a)); migrateLedgerAccounts(); }
+  if(d.ledgerVouchers) { window.ledgerVouchers = d.ledgerVouchers; }
+  if(typeof d.autoFeeDueDay==='number') autoFeeDueDay = d.autoFeeDueDay;
+  if(d.schoolProfile)  Object.assign(schoolProfile, d.schoolProfile);
+  if(d.appUsers && Array.isArray(d.appUsers) && d.appUsers.length) { appUsers.length=0; d.appUsers.forEach(u=>appUsers.push(u)); }
+  if(d.appTheme)       { window._tmCurrent = d.appTheme; _applyThemeVars(d.appTheme); }
+  return true;
+}
+
+async function initDB(){
+  // Try to reuse stored handle silently first
+  const stored = await _idbGetHandle();
+  if(stored){
+    try {
+      // Check permission
+      const perm = await stored.queryPermission({mode:'readwrite'});
+      if(perm==='granted'){
+        _dbFileHandle = stored;
+      } else {
+        const req = await stored.requestPermission({mode:'readwrite'});
+        if(req==='granted') _dbFileHandle = stored;
+      }
+    } catch(e){ _dbFileHandle = null; }
+  }
+
+  if(_dbFileHandle){
+    // Read existing db.json
+    try {
+      const file = await _dbFileHandle.getFile();
+      const text = await file.text();
+      if(text.trim()){
+        _applyDbData(JSON.parse(text));
+      } else {
+        // File exists but empty — write defaults
+        await _writeDb(_buildDbPayload());
+      }
+    } catch(e){
+      // File unreadable — create fresh
+      await _writeDb(_buildDbPayload());
+    }
+  } else {
+    // No handle yet — show prompt banner
+    _showDbBanner();
+  }
+
+  renderAll();
+  applySchoolProfileToHeader();
+  loadSchoolProfileFields();
+  syncClassDropdowns();
+  updateAutoFeeBadge(autoFeeDueDay);
+  renderUsersTable();
+  renderStorageUsage();
+}
+
+function _showDbBanner(){
+  const banner = document.createElement('div');
+  banner.id = 'dbBanner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1565C0;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px;font-family:DM Sans,sans-serif;font-size:.92rem;box-shadow:0 2px 10px rgba(0,0,0,.3)';
+  banner.innerHTML = `<span style="flex:1">📂 <strong>Select or create your <code>db.json</code> database file</strong> to load/save data. Place it in your app's home folder.</span>
+    <button onclick="connectDbFile(false)" style="background:#fff;color:#1565C0;border:none;border-radius:7px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:.88rem">📂 Open db.json</button>
+    <button onclick="connectDbFile(true)" style="background:#42A5F5;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:.88rem">✨ Create db.json</button>`;
+  document.body.prepend(banner);
+}
+
+async function connectDbFile(create=false){
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return false;
-    const d = JSON.parse(raw);
-    if(d.students)       { students.length=0; d.students.forEach(s=>students.push(s)); }
-    if(d.transactions)   { transactions.length=0; d.transactions.forEach(t=>transactions.push(t)); }
-    if(d.nextId)         nextId = d.nextId;
-    if(d.receiptNo)      receiptNo = d.receiptNo;
-    if(d.classDefs)      { classDefs.length=0; d.classDefs.forEach(c=>classDefs.push(c)); }
-    if(d.CLASSES_arr)    { CLASSES.length=0; d.CLASSES_arr.forEach(c=>CLASSES.push(c)); }
-    if(d.CLASS_FEES_obj) { Object.keys(CLASS_FEES).forEach(k=>delete CLASS_FEES[k]); Object.assign(CLASS_FEES, d.CLASS_FEES_obj); }
-    if(d.ledgerAccounts) { ledgerAccounts.length=0; d.ledgerAccounts.forEach(a=>ledgerAccounts.push(a)); migrateLedgerAccounts(); }
-    if(d.ledgerVouchers) { window.ledgerVouchers = d.ledgerVouchers; }
-    if(typeof d.autoFeeDueDay==='number') autoFeeDueDay = d.autoFeeDueDay;
-    if(d.schoolProfile)  Object.assign(schoolProfile, d.schoolProfile);
-    return true;
-  } catch(e){ console.warn('Load failed:', e); return false; }
+    if(create){
+      _dbFileHandle = await window.showSaveFilePicker({
+        suggestedName:'db.json',
+        types:[{description:'JSON Database',accept:{'application/json':['.json']}}],
+        excludeAcceptAllOption:true
+      });
+    } else {
+      const picks = await window.showOpenFilePicker({
+        types:[{description:'JSON Database',accept:{'application/json':['.json']}}],
+        excludeAcceptAllOption:true, multiple:false
+      });
+      _dbFileHandle = picks[0];
+    }
+    await _idbSetHandle(_dbFileHandle);
+    // Read or init
+    try {
+      const file = await _dbFileHandle.getFile();
+      const text = await file.text();
+      if(text.trim()){ _applyDbData(JSON.parse(text)); renderAll(); applySchoolProfileToHeader(); loadSchoolProfileFields(); syncClassDropdowns(); updateAutoFeeBadge(autoFeeDueDay); renderUsersTable(); }
+      else { await _writeDb(_buildDbPayload()); }
+    } catch{ await _writeDb(_buildDbPayload()); }
+    document.getElementById('dbBanner')?.remove();
+    renderStorageUsage();
+    showToast('✅ db.json connected','success',2500);
+  } catch(e){ if(e.name!=='AbortError') showToast('❌ Could not connect db.json','error'); }
 }
 
 // ══════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════
-loadPersistedData();
-renderAll();
-applySchoolProfileToHeader();
-loadSchoolProfileFields();
-syncClassDropdowns();
-updateAutoFeeBadge(autoFeeDueDay);
-renderStorageUsage();
+document.addEventListener('DOMContentLoaded', initDB, {once:true});
 
 // ══════════════════════════════════════
 //  SEARCHABLE SELECT
@@ -7252,13 +7394,13 @@ function umHash(str) {
 function umUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function umEsc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-let appUsers = (()=>{ try { const r=localStorage.getItem('app_users'); return r?JSON.parse(r):[]; } catch{return[];} })();
+let appUsers = [];
 if (!appUsers.length) appUsers = [
   { id:'u1', username:'super',   displayName:'SuperUser',           role:'superuser', active:true,  passwordHash:umHash('-'), lastLogin:null },
   { id:'u2', username:'admin',   displayName:'Administrator',       role:'admin',     active:true,  passwordHash:umHash('-'), lastLogin:null },
   { id:'u3', username:'op',      displayName:'Data Entry Operator', role:'operator',  active:true,  passwordHash:umHash('-'), lastLogin:null },
 ];
-function persistAppUsers() { try { localStorage.setItem('app_users', JSON.stringify(appUsers)); } catch{} }
+function persistAppUsers() { persistAll(); }
 
 let umEditId = null;
 
@@ -7334,7 +7476,7 @@ function removeUser(id) {
   showToast('User removed','info');
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{ renderUsersTable(); });
+// renderUsersTable() called from initDB on DOMContentLoaded
 
 // ══ LOGIN FLOW INITIALIZATION ══
 document.addEventListener('DOMContentLoaded', ()=>{
