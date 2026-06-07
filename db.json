@@ -1,0 +1,241 @@
+{
+  "students": [
+    {
+      "id": 1,
+      "name": "Ahmed Ali",
+      "father": "Ghulam Ali",
+      "cls": "Class 5",
+      "roll": "501",
+      "phone": "0301-1234567",
+      "fee": 1600,
+      "paid": 46400,
+      "admDate": "2024-01-15",
+      "gender": "Male"
+    },
+    {
+      "id": 21,
+      "name": "adf",
+      "father": "wer",
+      "cls": "Class 1",
+      "roll": "CL21",
+      "phone": "",
+      "fee": 5566,
+      "paid": 0,
+      "admDate": "2026-06-07",
+      "gender": "Male",
+      "dob": "2026-06-07",
+      "address": "",
+      "regId": "",
+      "bform": "",
+      "concession": 0,
+      "admissionFee": 0,
+      "section": "",
+      "photo": "",
+      "photoPath": ""
+    }
+  ],
+  "transactions": [
+    {
+      "studentId": 1,
+      "receipt": "RCP-1001",
+      "name": "Ahmed Ali",
+      "cls": "Class 5",
+      "month": "January",
+      "year": "2026",
+      "amount": 36800,
+      "method": "Cash",
+      "ledgerCat": "Cash",
+      "date": "07/06/2026",
+      "remarks": "",
+      "extraCharges": []
+    }
+  ],
+  "nextId": 22,
+  "receiptNo": 1002,
+  "classDefs": [
+    {
+      "name": "Nursery",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "KG",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "Class 1",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "Class 2",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "Class 3",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "Class 4",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "Class 5",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "Class 6",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "Class 7",
+      "sections": [],
+      "fee": 0
+    },
+    {
+      "name": "Class 8",
+      "sections": [],
+      "fee": 0
+    }
+  ],
+  "CLASSES_arr": [
+    "Nursery",
+    "KG",
+    "Class 1",
+    "Class 2",
+    "Class 3",
+    "Class 4",
+    "Class 5",
+    "Class 6",
+    "Class 7",
+    "Class 8"
+  ],
+  "CLASS_FEES_obj": {
+    "Nursery": 0,
+    "KG": 0,
+    "Class 1": 0,
+    "Class 2": 0,
+    "Class 3": 0,
+    "Class 4": 0,
+    "Class 5": 0,
+    "Class 6": 0,
+    "Class 7": 0,
+    "Class 8": 0
+  },
+  "ledgerAccounts": [
+    {
+      "key": "Cash",
+      "label": "Cash",
+      "icon": "💵",
+      "color": "#2E7D32",
+      "border": "#4CAF50",
+      "subs": [
+        {
+          "name": "Cash",
+          "openingBalance": 0
+        }
+      ]
+    },
+    {
+      "key": "Income",
+      "label": "Income",
+      "icon": "📈",
+      "color": "#1565C0",
+      "border": "#42A5F5",
+      "subs": [
+        {
+          "name": "FeeStudent",
+          "openingBalance": 0
+        }
+      ]
+    },
+    {
+      "key": "Expense",
+      "label": "Expense",
+      "icon": "📉",
+      "color": "#C62828",
+      "border": "#EF5350",
+      "subs": [
+        {
+          "name": "General Expense",
+          "openingBalance": 0
+        }
+      ]
+    },
+    {
+      "key": "DirectorAccounts",
+      "label": "Director Accounts",
+      "icon": "👤",
+      "color": "#6A1B9A",
+      "border": "#AB47BC",
+      "subs": [
+        {
+          "name": "DiretorAcc",
+          "openingBalance": 0
+        }
+      ]
+    },
+    {
+      "key": "RunningAccounts",
+      "label": "Running Accounts",
+      "icon": "🔄",
+      "color": "#E65100",
+      "border": "#FFA726",
+      "subs": []
+    }
+  ],
+  "autoFeeDueDay": 5,
+  "schoolProfile": {
+    "name": "Ghazali Model School Halalpur",
+    "address": "Main Road, Halalpur",
+    "contact": "",
+    "logo": ""
+  },
+  "ledgerVouchers": [
+    {
+      "vNo": "RCP-1001",
+      "type": "Cash Receipt",
+      "date": "07/06/2026",
+      "amount": 36800,
+      "debit": "Cash",
+      "credit": "FeeStudent",
+      "desc": "Monthly fee — Ahmed Ali (Class 5) — January 2026"
+    }
+  ],
+  "appUsers": [
+    {
+      "id": "u1",
+      "username": "super",
+      "displayName": "SuperUser",
+      "role": "superuser",
+      "active": true,
+      "passwordHash": "280c9438",
+      "lastLogin": "2026-06-07T09:33:53.879Z"
+    },
+    {
+      "id": "u2",
+      "username": "admin",
+      "displayName": "Administrator",
+      "role": "admin",
+      "active": true,
+      "passwordHash": "280c9438",
+      "lastLogin": null
+    },
+    {
+      "id": "u3",
+      "username": "op",
+      "displayName": "Data Entry Operator",
+      "role": "operator",
+      "active": true,
+      "passwordHash": "280c9438",
+      "lastLogin": null
+    }
+  ],
+  "appTheme": {}
+}
