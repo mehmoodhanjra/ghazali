@@ -6688,8 +6688,7 @@ const TM_SWATCHES = ['#1565C0','#1976D2','#0288D1','#0097A7','#00796B','#388E3C'
 let _tmCurrent = null;
 
 function openThemeModal(){
-  const saved = JSON.parse(localStorage.getItem('appTheme')||'{}');
-  _tmCurrent = Object.assign({}, TM_PRESETS.blue, saved);
+  _tmCurrent = Object.assign({}, TM_PRESETS.blue, window._tmCurrent||{});
   _buildSwatches();
   _syncPresetButtons();
   _updatePreview();
@@ -6807,7 +6806,8 @@ function _updatePreview(){
   document.getElementById('tmPrevPale').style.background    = _tmCurrent.pale;
 }
 function saveTheme(){
-  localStorage.setItem('appTheme', JSON.stringify(_tmCurrent));
+  window._tmCurrent = _tmCurrent;
+  persistAll();
   _applyThemeVars(_tmCurrent);
   closeThemeModal();
   showToast && showToast('🎨 Theme saved!','success');
@@ -6846,7 +6846,7 @@ function _applyThemeVars(t){
   }
 }
 // Auto-apply saved theme on load
-(function(){ const t=JSON.parse(localStorage.getItem('appTheme')||'null'); if(t) _applyThemeVars(t); })();
+// Theme auto-applied from db.json via initDB → _applyDbData
 
 function backupData(){
   const data=JSON.stringify({
@@ -6903,78 +6903,23 @@ function restoreData(event){
 // ══════════════════════════════════════
 //  PERSISTENCE
 // ══════════════════════════════════════
-// ── DB.JSON FILE SYSTEM ACCESS API ──
-let _dbFileHandle = null;
-let _dbWriteLock = false;
+// ── GITHUB db.json ENGINE ──
+const GH_REPO  = 'mehmoodhanjra/ghazali';
+const GH_FILE  = 'db.json';
+const GH_API   = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+const GH_RAW   = `https://raw.githubusercontent.com/${GH_REPO}/main/${GH_FILE}`;
+
+let _ghToken   = localStorage.getItem('gh_pat') || '';
+let _ghSha     = '';          // current blob SHA — required for updates
+let _dbWriteLock   = false;
 let _dbWriteQueued = false;
 
-async function _getDbHandle(create=false){
-  if(_dbFileHandle) return _dbFileHandle;
-  try {
-    // Try to get from stored handle via indexedDB (persist across reloads)
-    const stored = await _idbGetHandle();
-    if(stored){ try{ await stored.getFile(); _dbFileHandle=stored; return _dbFileHandle; }catch{} }
-    // Prompt user to pick/create the db.json file
-    if(create){
-      _dbFileHandle = await window.showSaveFilePicker({
-        suggestedName: 'db.json',
-        types:[{description:'JSON Database',accept:{'application/json':['.json']}}],
-        excludeAcceptAllOption:true
-      });
-    } else {
-      _dbFileHandle = await window.showOpenFilePicker({
-        types:[{description:'JSON Database',accept:{'application/json':['.json']}}],
-        excludeAcceptAllOption:true, multiple:false
-      }).then(h=>h[0]);
-    }
-    await _idbSetHandle(_dbFileHandle);
-    return _dbFileHandle;
-  } catch(e){ console.warn('DB handle error:',e); return null; }
-}
+// ── credentials ──
+function _hasToken(){ return !!_ghToken.trim(); }
+function _saveToken(t){ _ghToken = t.trim(); localStorage.setItem('gh_pat', _ghToken); }
+function _clearToken(){ _ghToken=''; localStorage.removeItem('gh_pat'); }
 
-// IndexedDB shim for persisting file handle
-function _idbGetHandle(){
-  return new Promise(res=>{
-    const req = indexedDB.open('ghazali_db_meta',1);
-    req.onupgradeneeded = e=>e.target.result.createObjectStore('handles');
-    req.onsuccess = e=>{ const tx=e.target.result.transaction('handles','readonly'); const r=tx.objectStore('handles').get('dbfile'); r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); };
-    req.onerror=()=>res(null);
-  });
-}
-function _idbSetHandle(handle){
-  return new Promise(res=>{
-    const req = indexedDB.open('ghazali_db_meta',1);
-    req.onupgradeneeded = e=>e.target.result.createObjectStore('handles');
-    req.onsuccess = e=>{ const tx=e.target.result.transaction('handles','readwrite'); tx.objectStore('handles').put(handle,'dbfile'); tx.oncomplete=res; tx.onerror=res; };
-    req.onerror=res;
-  });
-}
-
-async function _writeDb(data){
-  if(_dbWriteLock){ _dbWriteQueued=true; return; }
-  _dbWriteLock=true;
-  try {
-    const handle = _dbFileHandle;
-    if(!handle) return;
-    const writable = await handle.createWritable();
-    await writable.write(JSON.stringify(data, null, 2));
-    await writable.close();
-    if(_dbWriteQueued){ _dbWriteQueued=false; _dbWriteLock=false; await _writeDb(data); return; }
-  } catch(e){ console.warn('DB write failed:',e); }
-  _dbWriteLock=false;
-}
-
-async function _readDb(){
-  try {
-    const handle = await _getDbHandle(false);
-    if(!handle) return null;
-    const file = await handle.getFile();
-    const text = await file.text();
-    if(!text.trim()) return null;
-    return JSON.parse(text);
-  } catch(e){ console.warn('DB read failed:',e); return null; }
-}
-
+// ── payload ──
 function _buildDbPayload(){
   return {
     students, transactions, nextId, receiptNo,
@@ -6985,31 +6930,55 @@ function _buildDbPayload(){
   };
 }
 
-function persistAll(){
-  if(!_dbFileHandle){ console.warn('No db.json handle yet'); return; }
-  _writeDb(_buildDbPayload()).then(()=>renderStorageUsage()).catch(e=>console.warn('persistAll failed:',e));
-}
-
-function calcStorageUsage(){
+// ── read from GitHub (raw, no auth needed for public repo) ──
+async function _readDb(){
   try {
-    const json = JSON.stringify(_buildDbPayload());
-    return json.length;
-  } catch(e){ return 0; }
+    const res = await fetch(GH_RAW + '?t=' + Date.now());
+    if(res.status === 404) return null;          // file doesn't exist yet
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if(!text.trim()) return null;
+    // also fetch SHA for future writes
+    await _fetchSha();
+    return JSON.parse(text);
+  } catch(e){ console.warn('GH read failed:', e); return null; }
 }
 
-function renderStorageUsage(){
-  const bytes = calcStorageUsage();
-  const kb = (bytes / 1024).toFixed(1);
-  const approxLimit = 5 * 1024;
-  const percentUsed = Math.min(100, (bytes / (approxLimit * 1024)) * 100);
-  const el_used = document.getElementById('storageUsedKB');
-  const el_avail = document.getElementById('storageAvailKB');
-  const el_bar = document.getElementById('storageBar');
-  if(el_used) el_used.textContent = kb + ' KB';
-  if(el_avail) el_avail.textContent = (approxLimit - kb).toFixed(1) + ' MB';
-  if(el_bar) el_bar.style.width = percentUsed + '%';
+async function _fetchSha(){
+  try {
+    const res = await fetch(GH_API, { headers: _ghHeaders() });
+    if(res.ok){ const j=await res.json(); _ghSha = j.sha||''; }
+  } catch{}
 }
 
+function _ghHeaders(){
+  return { 'Authorization': 'token ' + _ghToken, 'Content-Type': 'application/json' };
+}
+
+// ── write to GitHub ──
+async function _writeDb(data){
+  if(!_hasToken()){ console.warn('No GitHub token'); return; }
+  if(_dbWriteLock){ _dbWriteQueued=true; return; }
+  _dbWriteLock = true;
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+    const body    = { message:'Update db.json', content, ..._ghSha?{sha:_ghSha}:{} };
+    const res     = await fetch(GH_API, { method:'PUT', headers:_ghHeaders(), body:JSON.stringify(body) });
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.message || 'HTTP '+res.status);
+    }
+    const j = await res.json();
+    _ghSha = j.content?.sha || _ghSha;
+    if(_dbWriteQueued){ _dbWriteQueued=false; _dbWriteLock=false; await _writeDb(data); return; }
+  } catch(e){
+    console.warn('GH write failed:', e);
+    showToast('⚠️ Save to GitHub failed: ' + e.message, 'error', 4000);
+  }
+  _dbWriteLock = false;
+}
+
+// ── apply loaded data to app state ──
 function _applyDbData(d){
   if(!d) return false;
   if(d.students)       { students.length=0; d.students.forEach(s=>students.push(s)); }
@@ -7023,47 +6992,85 @@ function _applyDbData(d){
   if(d.ledgerVouchers) { window.ledgerVouchers = d.ledgerVouchers; }
   if(typeof d.autoFeeDueDay==='number') autoFeeDueDay = d.autoFeeDueDay;
   if(d.schoolProfile)  Object.assign(schoolProfile, d.schoolProfile);
-  if(d.appUsers && Array.isArray(d.appUsers) && d.appUsers.length) { appUsers.length=0; d.appUsers.forEach(u=>appUsers.push(u)); }
+  if(d.appUsers && Array.isArray(d.appUsers) && d.appUsers.length){ appUsers.length=0; d.appUsers.forEach(u=>appUsers.push(u)); }
   if(d.appTheme)       { window._tmCurrent = d.appTheme; _applyThemeVars(d.appTheme); }
   return true;
 }
 
-async function initDB(){
-  // Try to reuse stored handle silently first
-  const stored = await _idbGetHandle();
-  if(stored){
-    try {
-      // Check permission
-      const perm = await stored.queryPermission({mode:'readwrite'});
-      if(perm==='granted'){
-        _dbFileHandle = stored;
-      } else {
-        const req = await stored.requestPermission({mode:'readwrite'});
-        if(req==='granted') _dbFileHandle = stored;
-      }
-    } catch(e){ _dbFileHandle = null; }
-  }
+// ── persistAll (called everywhere saves happen) ──
+function persistAll(){
+  _writeDb(_buildDbPayload()).then(()=>renderStorageUsage()).catch(e=>console.warn('persistAll failed:',e));
+}
 
-  if(_dbFileHandle){
-    // Read existing db.json
-    try {
-      const file = await _dbFileHandle.getFile();
-      const text = await file.text();
-      if(text.trim()){
-        _applyDbData(JSON.parse(text));
-      } else {
-        // File exists but empty — write defaults
-        await _writeDb(_buildDbPayload());
-      }
-    } catch(e){
-      // File unreadable — create fresh
-      await _writeDb(_buildDbPayload());
-    }
+// ── storage usage display (based on payload size) ──
+function calcStorageUsage(){
+  try { return JSON.stringify(_buildDbPayload()).length; } catch{ return 0; }
+}
+function renderStorageUsage(){
+  const bytes = calcStorageUsage();
+  const kb    = (bytes/1024).toFixed(1);
+  const approxLimit = 100*1024;   // GitHub file limit ~100 MB, show relative to 100 KB soft warn
+  const percentUsed = Math.min(100,(bytes/(100*1024))*100);
+  const el_used  = document.getElementById('storageUsedKB');
+  const el_avail = document.getElementById('storageAvailKB');
+  const el_bar   = document.getElementById('storageBar');
+  if(el_used)  el_used.textContent  = kb + ' KB';
+  if(el_avail) el_avail.textContent = 'GitHub repo';
+  if(el_bar)   el_bar.style.width   = percentUsed + '%';
+}
+
+// ── token setup modal ──
+function _showTokenModal(){
+  if(document.getElementById('ghTokenModal')) return;
+  const m = document.createElement('div');
+  m.id = 'ghTokenModal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(13,59,110,.55);display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+  <div style="background:#fff;border-radius:16px;padding:32px 28px;max-width:460px;width:94%;box-shadow:0 8px 40px rgba(13,59,110,.25);font-family:DM Sans,sans-serif">
+    <div style="font-size:1.15rem;font-weight:700;color:#0D3B6E;margin-bottom:6px">🔑 GitHub Access Token</div>
+    <p style="font-size:.88rem;color:#546e7a;margin-bottom:18px;line-height:1.6">
+      This app saves data to <code style="background:#e3f0ff;padding:2px 6px;border-radius:4px">db.json</code> in your GitHub repo
+      <code style="background:#e3f0ff;padding:2px 6px;border-radius:4px">mehmoodhanjra/ghazali</code>.<br><br>
+      Generate a token at <a href="https://github.com/settings/tokens/new" target="_blank" style="color:#1565C0">github.com → Settings → Tokens (classic)</a>
+      with <strong>repo</strong> scope checked, then paste it below.
+    </p>
+    <input id="ghPatInput" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+      style="width:100%;border:1.5px solid #CFD8DC;border-radius:8px;padding:10px 14px;font-size:.92rem;margin-bottom:14px;outline:none;font-family:monospace">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="document.getElementById('ghTokenModal').remove()" style="background:#ECEFF1;color:#37474F;border:none;border-radius:8px;padding:9px 18px;font-weight:600;cursor:pointer;font-size:.88rem">Cancel</button>
+      <button onclick="ghSaveToken()" style="background:#1565C0;color:#fff;border:none;border-radius:8px;padding:9px 22px;font-weight:700;cursor:pointer;font-size:.88rem">Connect →</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+  setTimeout(()=>document.getElementById('ghPatInput')?.focus(),100);
+}
+
+async function ghSaveToken(){
+  const t = document.getElementById('ghPatInput')?.value?.trim();
+  if(!t){ showToast('Please enter a token','error'); return; }
+  _saveToken(t);
+  document.getElementById('ghTokenModal')?.remove();
+  showToast('🔄 Connecting to GitHub…','info',2000);
+  await _connectGitHub();
+}
+
+function ghChangeToken(){
+  _clearToken();
+  _ghSha = '';
+  _showTokenModal();
+}
+
+// ── connect: read db.json from GitHub, create if missing ──
+async function _connectGitHub(){
+  const data = await _readDb();
+  if(data){
+    _applyDbData(data);
   } else {
-    // No handle yet — show prompt banner
-    _showDbBanner();
+    // db.json doesn't exist — create it with defaults
+    showToast('📄 Creating db.json on GitHub…','info',2500);
+    await _fetchSha();   // in case file was just created
+    await _writeDb(_buildDbPayload());
   }
-
   renderAll();
   applySchoolProfileToHeader();
   loadSchoolProfileFields();
@@ -7071,45 +7078,41 @@ async function initDB(){
   updateAutoFeeBadge(autoFeeDueDay);
   renderUsersTable();
   renderStorageUsage();
+  showToast('✅ GitHub db.json connected','success',2500);
 }
 
-function _showDbBanner(){
-  const banner = document.createElement('div');
-  banner.id = 'dbBanner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1565C0;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px;font-family:DM Sans,sans-serif;font-size:.92rem;box-shadow:0 2px 10px rgba(0,0,0,.3)';
-  banner.innerHTML = `<span style="flex:1">📂 <strong>Select or create your <code>db.json</code> database file</strong> to load/save data. Place it in your app's home folder.</span>
-    <button onclick="connectDbFile(false)" style="background:#fff;color:#1565C0;border:none;border-radius:7px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:.88rem">📂 Open db.json</button>
-    <button onclick="connectDbFile(true)" style="background:#42A5F5;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:.88rem">✨ Create db.json</button>`;
-  document.body.prepend(banner);
-}
+// ── initDB: entry point on page load ──
+async function initDB(){
+  renderAll();
+  applySchoolProfileToHeader();
+  loadSchoolProfileFields();
+  syncClassDropdowns();
+  updateAutoFeeBadge(autoFeeDueDay);
+  renderUsersTable();
+  renderStorageUsage();
 
-async function connectDbFile(create=false){
-  try {
-    if(create){
-      _dbFileHandle = await window.showSaveFilePicker({
-        suggestedName:'db.json',
-        types:[{description:'JSON Database',accept:{'application/json':['.json']}}],
-        excludeAcceptAllOption:true
-      });
-    } else {
-      const picks = await window.showOpenFilePicker({
-        types:[{description:'JSON Database',accept:{'application/json':['.json']}}],
-        excludeAcceptAllOption:true, multiple:false
-      });
-      _dbFileHandle = picks[0];
-    }
-    await _idbSetHandle(_dbFileHandle);
-    // Read or init
-    try {
-      const file = await _dbFileHandle.getFile();
-      const text = await file.text();
-      if(text.trim()){ _applyDbData(JSON.parse(text)); renderAll(); applySchoolProfileToHeader(); loadSchoolProfileFields(); syncClassDropdowns(); updateAutoFeeBadge(autoFeeDueDay); renderUsersTable(); }
-      else { await _writeDb(_buildDbPayload()); }
-    } catch{ await _writeDb(_buildDbPayload()); }
-    document.getElementById('dbBanner')?.remove();
+  if(!_hasToken()){
+    _showTokenModal();
+    return;
+  }
+  // Token exists — silently load
+  await _fetchSha();
+  const data = await _readDb();
+  if(data){
+    _applyDbData(data);
+    renderAll();
+    applySchoolProfileToHeader();
+    loadSchoolProfileFields();
+    syncClassDropdowns();
+    updateAutoFeeBadge(autoFeeDueDay);
+    renderUsersTable();
     renderStorageUsage();
-    showToast('✅ db.json connected','success',2500);
-  } catch(e){ if(e.name!=='AbortError') showToast('❌ Could not connect db.json','error'); }
+    showToast('✅ Data loaded from GitHub','success',2000);
+  } else {
+    // Token set but file missing — create it
+    await _writeDb(_buildDbPayload());
+    showToast('📄 db.json created on GitHub','success',2500);
+  }
 }
 
 // ══════════════════════════════════════
